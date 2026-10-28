@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Flujo Logístico AS-IS</title>
+        
+        <!-- Importación de librerías mediante CDN -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6" crossorigin="anonymous" />
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js" integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf" crossorigin="anonymous"></script>
+
+        <style type="text/css">
+             /* ---- ESTILOS DEL CONTENEDOR ---- */
+             #mynetwork {
+                 width: 100%;
+                 height: 850px;
+                 background-color: #F8F9FB;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+                 box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* Toque elegante */
+                 border-radius: 8px;
+             }
+        </style>
+    </head>
+
+    <body class="bg-light p-4">
+        <div class="container-fluid">
+            <h3 class="mb-3 text-secondary">Diagrama de Flujos Logísticos: Escenario AS-IS</h3>
+            <div class="card" style="width: 100%">
+                <div id="mynetwork" class="card-body"></div>
+            </div>
+        </div>
+
+        <script type="text/javascript">
+              // ---- CONFIGURACIÓN INICIAL DE VARIABLES ----
+              var edges;
+              var nodes;
+              var network;
+              var container;
+              var options, data;
+
+              function drawGraph() {
+                  container = document.getElementById('mynetwork');
+
+                  // ---- DEFINICIÓN DE NODOS ----
+                  // Cada nodo tiene su posición X/Y fija para mantener la estructura deseada
+                  nodes = new vis.DataSet([
+                      {"borderWidth": 3, "color": "#9E2A2B", "color_border": "#FFFFFF", "font": {"align": "center", "color": "white", "face": "arial", "font-weight": "bold", "size": 18}, "id": "PROVEEDORES\nMMPP", "label": "PROVEEDORES\nMMPP", "shape": "circle", "x": 100, "y": -450},
+                      {"borderWidth": 3, "color": "#C84B31", "color_border": "#FFFFFF", "font": {"align": "center", "color": "white", "face": "arial", "font-weight": "bold", "size": 18}, "id": "SILO MMPP\nTERRASSA", "label": "SILO MMPP\nTERRASSA", "shape": "circle", "x": 450, "y": -680},
+                      {"borderWidth": 3, "color": "#1B365D", "color_border": "#FFFFFF", "font": {"align": "center", "color": "white", "face": "arial", "font-weight": "bold", "size": 18}, "id": "SILO\nPPTT", "label": "SILO\nPPTT", "shape": "circle", "x": 450, "y": -220},
+                      {"borderWidth": 3, "color": "#4A148C", "color_border": "#FFFFFF", "font": {"align": "center", "color": "white", "face": "arial", "font-weight": "bold", "size": 18}, "id": "CN\nLOGISTICA", "label": "CN\nLOGISTICA", "shape": "circle", "x": 800, "y": -680},
+                      {"borderWidth": 3, "color": "#6A1B9A", "color_border": "#FFFFFF", "font": {"align": "center", "color": "white", "face": "arial", "font-weight": "bold", "size": 18}, "id": "PICKING\nPHARMA", "label": "PICKING\nPHARMA", "shape": "circle", "x": 800, "y": -480},
+                      {"borderWidth": 3, "color": "#1B4965", "color_border": "#FFFFFF", "font": {"align": "center", "color": "white", "face": "arial", "font-weight": "bold", "size": 18}, "id": "COFARES -\nFMVX", "label": "COFARES -\nFMVX", "shape": "circle", "x": 800, "y": -280},
+                      {"borderWidth": 3, "color": "#234E82", "color_border": "#FFFFFF", "font": {"align": "center", "color": "white", "face": "arial", "font-weight": "bold", "size": 18}, "id": "CMOs", "label": "CMOs", "shape": "circle", "x": 800, "y": -80},
+                      {"borderWidth": 3, "color": "#3A75B4", "color_border": "#FFFFFF", "font": {"align": "center", "color": "white", "face": "arial", "font-weight": "bold", "size": 18}, "id": "Clientes", "label": "Clientes", "shape": "circle", "x": 1200, "y": -450}
+                  ]);
+
+                  // ---- DEFINICIÓN DE FLUJOS (ARISTAS) ----
+                  // Los flujos están ajustados hacia los nuevos ID: SILO\nPPTT y COFARES -\nFMVX
+                  edges = new vis.DataSet([
+                      {"arrowStrikethrough": false, "arrows": {"to": {"enabled": true, "scaleFactor": 2.2, "type": "arrow"}}, "color": "#C0392B", "font": {"background": "white", "color": "#C0392B", "face": "arial", "size": 12, "strokeColor": "white", "strokeWidth": 3}, "from": "PROVEEDORES\nMMPP", "label": "9.646", "smooth": {"roundness": 0.16, "type": "curvedCW"}, "to": "SILO MMPP\nTERRASSA", "width": 5.056},
+                      {"arrowStrikethrough": false, "arrows": {"to": {"enabled": true, "scaleFactor": 2.2, "type": "arrow"}}, "color": "#C0392B", "font": {"background": "white", "color": "#C0392B", "face": "arial", "size": 12, "strokeColor": "white", "strokeWidth": 3}, "from": "PROVEEDORES\nMMPP", "label": "159", "smooth": {"roundness": 0.16, "type": "curvedCCW"}, "to": "CN\nLOGISTICA", "width": 2.050},
+                      {"arrowStrikethrough": false, "arrows": {"to": {"enabled": true, "scaleFactor": 2.2, "type": "arrow"}}, "color": "#C0392B", "font": {"background": "white", "color": "#C0392B", "face": "arial", "size": 12, "strokeColor": "white", "strokeWidth": 3}, "from": "CN\nLOGISTICA", "label": "186", "smooth": {"roundness": 0.16, "type": "curvedCW"}, "to": "SILO MMPP\nTERRASSA", "width": 2.058},
+                      {"arrowStrikethrough": false, "arrows": {"to": {"enabled": true, "scaleFactor": 2.2, "type": "arrow"}}, "color": "#D4711A", "font": {"background": "white", "color": "#D4711A", "face": "arial", "size": 12, "strokeColor": "white", "strokeWidth": 3}, "from": "PROVEEDORES\nMMPP", "label": "8.576", "smooth": {"roundness": 0.28, "type": "curvedCW"}, "to": "SILO MMPP\nTERRASSA", "width": 4.717},
+                      {"arrowStrikethrough": false, "arrows": {"to": {"enabled": true, "scaleFactor": 2.2, "type": "arrow"}}, "color": "#D4711A", "font": {"background": "white", "color": "#D4711A", "face": "arial", "size": 12, "strokeColor": "white", "strokeWidth": 3}, "from": "PROVEEDORES\nMMPP", "label": "5.883", "smooth": {"roundness": 0.28, "type": "curvedCCW"}, "to": "CN\nLOGISTICA", "width": 3.864},
+                      {"arrowStrikethrough": false, "arrows": {"to": {"enabled": true, "scaleFactor": 2.2, "type": "arrow"}}, "color": "#D4711A", "font": {"background": "white", "color": "#D4711A", "face": "arial", "size": 12, "strokeColor": "white", "strokeWidth": 3}, "from": "PROVEEDORES\nMMPP", "label": "760", "smooth": {"roundness": 0.16, "type": "curvedCCW"}, "to": "PICKING\nPHARMA", "width": 2.240},
+                      {"arrowStrikethrough": false, "arrows": {"to": {"enabled": true, "scaleFactor": 2.2, "type": "arrow"}}, "color": "#D4711A", "font": {"background": "white", "color": "#D4711A", "face": "arial", "size": 12, "strokeColor": "white", "strokeWidth": 3}, "from": "CN\nLOGISTICA", "label": "6.110", "smooth": {"roundness": 0.28, "type": "curvedCW"}, "to": "SILO MMPP\nTERRASSA", "width": 3.935},
+                      {"arrowStrikethrough": false, "arrows": {"to": {"enabled": true, "scaleFactor": 2.2, "type": "arrow"}}, "color": "#D4711A", "font": {"background": "white", "color": "#D4711A", "face": "arial", "size": 12, "strokeColor": "white", "strokeWidth": 3}, "from": "PICKING\nPHARMA", "label": "846", "smooth": {"roundness": 0.16, "type": "curvedCW"}, "to": "SILO MMPP\nTERRASSA", "width": 2.268},
+                      {"arrowStrikethrough": false, "arrows": {"to": {"enabled": true, "scaleFactor": 2.2, "type": "arrow"}}, "color": "#1A56A0", "font": {"background": "white", "color": "#1A56A0", "face": "arial", "size": 12, "strokeColor": "white", "strokeWidth": 3}, "from": "SILO\nPPTT", "label": "7.364", "smooth": {"roundness": 0.16, "type": "curvedCCW"}, "to": "CN\nLOGISTICA", "width": 4.333},
+                      {"arrowStrikethrough": false, "arrows": {"to": {"enabled": true, "scaleFactor": 2.2, "type": "arrow"}}, "color": "#1A56A0", "font": {"background": "white", "color": "#1A56A0", "face": "arial", "size": 12, "strokeColor": "white", "strokeWidth": 3}, "from": "SILO\nPPTT", "label": "2.075", "smooth": {"roundness": 0.16, "type": "curvedCCW"}, "to": "PICKING\nPHARMA", "width": 2.657},
+
+                      // Flujos directos e intermedios de PPTT a Clientes
+                      {"arrowStrikethrough": false, "arrows": {"to": {"enabled": true, "scaleFactor": 2.2, "type": "arrow"}}, "color": "#1A56A0", "font": {"background": "white", "color": "#1A56A0", "face": "arial", "size": 12, "strokeColor": "white", "strokeWidth": 3}, "from": "SILO\nPPTT", "label": "23.426", "smooth": {"roundness": 0.16, "type": "curvedCCW"}, "to": "Clientes", "width": 8.91},
+                      {"arrowStrikethrough": false, "arrows": {"to": {"enabled": true, "scaleFactor": 2.2, "type": "arrow"}}, "color": "#1A56A0", "font": {"background": "white", "color": "#1A56A0", "face": "arial", "size": 12, "strokeColor": "white", "strokeWidth": 3}, "from": "SILO\nPPTT", "label": "8.134", "smooth": {"roundness": 0.16, "type": "curvedCW"}, "to": "COFARES -\nFMVX", "width": 3.09},
+                      {"arrowStrikethrough": false, "arrows": {"to": {"enabled": true, "scaleFactor": 2.2, "type": "arrow"}}, "color": "#1A56A0", "font": {"background": "white", "color": "#1A56A0", "face": "arial", "size": 12, "strokeColor": "white", "strokeWidth": 3}, "from": "COFARES -\nFMVX", "label": "8.134", "smooth": {"roundness": 0.16, "type": "curvedCW"}, "to": "Clientes", "width": 3.09},
+
+                      {"arrowStrikethrough": false, "arrows": {"to": {"enabled": true, "scaleFactor": 2.2, "type": "arrow"}}, "color": "#1A56A0", "font": {"background": "white", "color": "#1A56A0", "face": "arial", "size": 12, "strokeColor": "white", "strokeWidth": 3}, "from": "CN\nLOGISTICA", "label": "7.150", "smooth": {"roundness": 0.28, "type": "curvedCW"}, "to": "SILO\nPPTT", "width": 4.265},
+                      {"arrowStrikethrough": false, "arrows": {"to": {"enabled": true, "scaleFactor": 2.2, "type": "arrow"}}, "color": "#1A56A0", "font": {"background": "white", "color": "#1A56A0", "face": "arial", "size": 12, "strokeColor": "white", "strokeWidth": 3}, "from": "PICKING\nPHARMA", "label": "4.366", "smooth": {"roundness": 0.28, "type": "curvedCW"}, "to": "SILO\nPPTT", "width": 3.383},
+                      {"arrowStrikethrough": false, "arrows": {"to": {"enabled": true, "scaleFactor": 2.2, "type": "arrow"}}, "color": "#1A56A0", "font": {"background": "white", "color": "#1A56A0", "face": "arial", "size": 12, "strokeColor": "white", "strokeWidth": 3}, "from": "CMOs", "label": "7.177", "smooth": {"roundness": 0.16, "type": "curvedCW"}, "to": "SILO\nPPTT", "width": 4.274},
+                      {"arrowStrikethrough": false, "arrows": {"to": {"enabled": true, "scaleFactor": 2.2, "type": "arrow"}}, "color": "#1A56A0", "font": {"background": "white", "color": "#1A56A0", "face": "arial", "size": 12, "strokeColor": "white", "strokeWidth": 3}, "from": "CMOs", "label": "5.245", "smooth": {"roundness": 0.16, "type": "curvedCW"}, "to": "PICKING\nPHARMA", "width": 3.661},
+                      {"arrowStrikethrough": false, "arrows": {"to": {"enabled": true, "scaleFactor": 2.2, "type": "arrow"}}, "color": "#4A5568", "font": {"background": "white", "color": "#4A5568", "face": "arial", "size": 13, "strokeColor": "white", "strokeWidth": 3}, "from": "SILO MMPP\nTERRASSA", "label": "FABRICACIÓN", "smooth": {"roundness": 0.16, "type": "curvedCCW"}, "to": "SILO\nPPTT", "width": 3.5}
+                  ]);
+
+                  data = {nodes: nodes, edges: edges};
+
+                  // ---- PARÁMETROS DEL GRAFO ----
+                  options = {
+                      "configure": {"enabled": false},
+                      "edges": {
+                          "color": {"inherit": true},
+                          "smooth": {"enabled": true, "type": "dynamic"}
+                      },
+                      "interaction": {
+                          "dragNodes": true,
+                          "hideEdgesOnDrag": false,
+                          "hideNodesOnDrag": false
+                      },
+                      "physics": {
+                          "enabled": false, // Físicas apagadas para mantener posiciones estáticas
+                          "stabilization": {"enabled": true, "fit": true, "iterations": 1000, "onlyDynamicEdges": false, "updateInterval": 50}
+                      }
+                  };
+
+                  // Instanciar la red
+                  network = new vis.Network(container, data, options);
+                  return network;
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>

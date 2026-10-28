@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Estrategia de Almacenamiento KERN - Diagrama de Flujo Limpio</title>
+
+    <!-- ---- DEPENDENCIAS CDN ---- -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-2.29.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- ---- ESTILOS VISUALES Y ARQUITECTURA DE CONTRASTE ---- -->
+    <style>
+        :root {
+            --kern-pt: #1B365D;          /* Azul marino KERN */
+            --kern-acond: #D4711A;       /* Naranja caldero */
+            --kern-mmpp: #C0392B;        /* Rojo teja MMPP */
+            --kern-otros: #5A6A85;       /* Gris azulado otros */
+            --kern-3pl-cn: #512DA8;      /* Púrpura CN Logística */
+            --kern-3pl-pf: #7B1FA2;      /* Violeta Picking Farma */
+            --text-dark: #0F172A;        /* Negro pizarra alta legibilidad */
+            --bg-page: #F8FAFC;          /* Fondo neutro */
+        }
+
+        body {
+            background-color: var(--bg-page);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: var(--text-dark);
+            padding: 1.5rem;
+        }
+
+        .main-card {
+            background: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+            padding: 2rem;
+            max-width: 1560px;
+            margin: 0 auto;
+        }
+
+        /* ---- ENCABEZADOS DE LAS TRES SECCIONES ---- */
+        .stage-box {
+            border-radius: 8px;
+            padding: 0.9rem 1.2rem;
+            text-align: center;
+            border: 1px solid #CBD5E1;
+            background: #F8FAFC;
+        }
+
+        .stage-title {
+            font-size: 0.95rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 0.25rem;
+        }
+
+        .stage-sub {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #64748B;
+        }
+
+        .stage-col-1 {
+            border-top: 4px solid #C0392B;
+        }
+        .stage-col-1 .stage-title {
+            color: #991B1B;
+        }
+
+        .stage-col-2 {
+            border-top: 4px solid #D4711A;
+        }
+        .stage-col-2 .stage-title {
+            color: #C2410C;
+        }
+
+        .stage-col-3 {
+            border-top: 4px solid #1B365D;
+        }
+        .stage-col-3 .stage-title {
+            color: #1E3A8A;
+        }
+
+        #sankey-container {
+            width: 100%;
+            height: 760px; /* Altura optimizada para dar respiro vertical a cada nodo */
+            margin-top: 1rem;
+        }
+
+        .legend-tag {
+            font-size: 0.82rem;
+            font-weight: 700;
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            color: #FFFFFF;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main-card">
+        
+        <!-- ---- HEADER EJECUTIVO ---- -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center pb-3 mb-4 border-bottom">
+            <div>
+                <h3 class="fw-bold mb-1" style="color: var(--kern-pt);">Reestructuración de Almacenamiento KERN</h3>
+                <p class="text-secondary small mb-0">Consolidación de ubicaciones de inventario: <strong>28.404 ➔ 28.402 Palets</strong></p>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-primary btn-sm px-3 fw-semibold shadow-sm" onclick="exportSankey()">
+                    Descargar Diagrama en Alta Resolución (PNG)
+                </button>
+            </div>
+        </div>
+
+        <!-- ---- LEYENDA TÉCNICA DE TIPOLOGÍAS ---- -->
+        <div class="d-flex flex-wrap gap-2 mb-4 align-items-center">
+            <span class="small fw-bold text-uppercase text-secondary me-2">Flujos por Tipología:</span>
+            <span class="legend-tag" style="background-color: var(--kern-mmpp);">MMPP y API (4.772 pal)</span>
+            <span class="legend-tag" style="background-color: var(--kern-acond);">Material Acondicionamiento (7.428 pal)</span>
+            <span class="legend-tag" style="background-color: var(--kern-otros);">Otros Insumos (332 pal)</span>
+            <span class="legend-tag" style="background-color: var(--kern-pt);">Producto Terminado (15.870 pal)</span>
+        </div>
+
+        <!-- ---- ENCABEZADOS DE SECCIÓN (SIN PARÉNTESIS EN NODOS) ---- -->
+        <div class="row g-3 mb-2">
+            <div class="col-4">
+                <div class="stage-box stage-col-1">
+                    <div class="stage-title">Red de Origen (AS-IS)</div>
+                    <div class="stage-sub">Modelo Disperso con 3PL Satélite (28.404 Palets)</div>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="stage-box stage-col-2">
+                    <div class="stage-title">Tipología de Inventario</div>
+                    <div class="stage-sub">Segregación por Familia Operativa de Stock</div>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="stage-box stage-col-3">
+                    <div class="stage-title">Red de Destino (TO-BE)</div>
+                    <div class="stage-sub">Consolidación e Internalización Propia (28.402 Palets)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ---- CONTENEDOR DEL GRAFO SANKEY ---- -->
+        <div id="sankey-container"></div>
+
+        <!-- ---- RESUMEN DE BENEFICIOS OPERATIVOS ---- -->
+        <div class="mt-3 p-3 bg-light border rounded text-secondary small d-flex justify-content-between align-items-center">
+            <div>
+                <strong>Lectura Ejecutiva:</strong> En la parte superior se observa la especialización de <strong>Silo Terrassa</strong> en materias primas y acondicionado para servicio a líneas. En la base, el <strong>Nuevo Silo PT</strong> absorbe la totalidad del producto terminado, liberando al 100% las naves alquiladas a CN Logística y Picking Farma.
+            </div>
+            <span class="badge bg-success px-3 py-2 ms-3 text-uppercase">0% Externalización 3PL</span>
+        </div>
+
+    </div>
+
+    <!-- ---- SCRIPT DE RENDERIZADO CON PLOTLY.JS ---- -->
+    <script type="text/javascript">
+        function drawCleanSankey() {
+            // ---- 1. DEFINICIÓN DE ETIQUETAS DE NODOS (SIN SUFIJOS DE FASE) ----
+            const nodeLabels = [
+                // Columna 1: Orígenes (0..3)
+                "<b>Fábrica Terrassa</b> | 16.728 pal",      // 0 (Top)
+                "<b>Zonas de Planta</b> | 1.239 pal",        // 1
+                "<b>CN Logística (3PL)</b> | 7.067 pal",     // 2
+                "<b>Picking Farma (3PL)</b> | 3.368 pal",    // 3 (Base)
+
+                // Columna 2: Tipologías (4..7)
+                "<b>Materias Primas (MMPP/API)</b> | 4.772 pal", // 4 (Top)
+                "<b>Material Acondicionamiento</b> | 7.428 pal",  // 5
+                "<b>Otros (Muestras/Química)</b> | 332 pal",     // 6
+                "<b>Producto Terminado (PT)</b> | 15.870 pal",   // 7 (Base)
+
+                // Columna 3: Destinos (8..10)
+                "<b>Silo Fábrica Terrassa</b> | 11.564 pal",  // 8 (Top)
+                "<b>Zonas de Planta</b> | 1.239 pal",        // 9 (Centro)
+                "<b>NUEVO SILO PT</b> | 15.599 pal"          // 10 (Base)
+            ];
+
+            // Colores distintivos y sólidos para los nodos
+            const nodeColors = [
+                "#C84B31", // 0: Fábrica Terrassa
+                "#475569", // 1: Zonas de Planta
+                "#512DA8", // 2: CN Logística (3PL)
+                "#7B1FA2", // 3: Picking Farma (3PL)
+
+                "#C0392B", // 4: MMPP y API
+                "#D4711A", // 5: Material Acondicionamiento
+                "#5A6A85", // 6: Otros
+                "#1B365D", // 7: Producto Terminado (PT)
+
+                "#C84B31", // 8: Silo Fábrica Terrassa (Consolidador insumos)
+                "#475569", // 9: Zonas de Planta
+                "#1B365D"  // 10: NUEVO SILO PT
+            ];
+
+            // Coordenadas horizontales (X) estrictas en 3 columnas
+            const nodeX = [
+                0.001, 0.001, 0.001, 0.001,  // Col 1
+                0.500, 0.500, 0.500, 0.500,  // Col 2
+                0.999, 0.999, 0.999          // Col 3
+            ];
+
+            // Coordenadas relativas iniciales (Y) para fijar el orden topológico exacto
+            // arrangement: "snap" respetará este orden y calculará el espaciado sin solapamiento
+            const nodeY = [
+                0.01, 0.35, 0.65, 0.95,      // Col 1: Terrassa arriba, Planta, CN, Picking abajo
+                0.01, 0.25, 0.45, 0.85,      // Col 2: MMPP arriba, Acond, Otros, PT abajo
+                0.01, 0.40, 0.85             // Col 3: Terrassa arriba, Planta centro, Nuevo Silo abajo
+            ];
+
+            // ---- 2. MAPEO DE FLUJOS (SOURCES, TARGETS, VALUES) ----
+            const sources = [
+                // Col 1 ➔ Col 2 (Desde Terrassa)
+                0, 0, 0, 0,
+                // Col 1 ➔ Col 2 (Desde Planta)
+                1, 1, 1, 1,
+                // Col 1 ➔ Col 2 (Desde CN Logística)
+                2, 2, 2, 2,
+                // Col 1 ➔ Col 2 (Desde Picking Farma)
+                3, 3, 3,
+
+                // Col 2 ➔ Col 3 (Hacia Destinos)
+                4, 4,       // MMPP ➔ Terrassa (8) y Planta (9)
+                5, 5,       // Acond ➔ Terrassa (8) y Planta (9)
+                6, 6,       // Otros ➔ Terrassa (8) y Planta (9)
+                7, 7        // PT ➔ NUEVO SILO PT (10) y Planta (9)
+            ];
+
+            const targets = [
+                // Desde Terrassa a MMPP, Acond, Otros, PT
+                4, 5, 6, 7,
+                // Desde Planta a MMPP, Acond, Otros, PT
+                4, 5, 6, 7,
+                // Desde CN Logística a MMPP, Acond, Otros, PT
+                4, 5, 6, 7,
+                // Desde Picking Farma a Acond, Otros, PT
+                5, 6, 7,
+
+                // Hacia Destinos finales
+                8, 9,
+                8, 9,
+                8, 9,
+                10, 9
+            ];
+
+            const values = [
+                // Terrassa (Total 16.728)
+                4160, 4051, 176, 8341,
+                // Planta (Total 1.239)
+                547, 303, 118, 271,
+                // CN Logística (Total 7.067)
+                65, 2367, 24, 4611,
+                // Picking Farma (Total 3.368)
+                707, 14, 2647,
+
+                // Hacia Destinos (Total 28.402)
+                4225, 547,  // MMPP
+                7125, 303,  // Acondicionamiento
+                214, 118,   // Otros
+                15599, 271  // PT
+            ];
+
+            // Paleta semitransparente con contraste balanceado para evitar aspecto borroso
+            const linkColors = [
+                // Terrassa
+                "rgba(192, 57, 43, 0.45)", "rgba(212, 113, 26, 0.45)", "rgba(90, 106, 133, 0.40)", "rgba(27, 54, 93, 0.45)",
+                // Planta
+                "rgba(192, 57, 43, 0.45)", "rgba(212, 113, 26, 0.45)", "rgba(90, 106, 133, 0.40)", "rgba(27, 54, 93, 0.45)",
+                // CN Logística
+                "rgba(192, 57, 43, 0.35)", "rgba(212, 113, 26, 0.45)", "rgba(90, 106, 133, 0.40)", "rgba(27, 54, 93, 0.45)",
+                // Picking Farma
+                "rgba(212, 113, 26, 0.45)", "rgba(90, 106, 133, 0.40)", "rgba(27, 54, 93, 0.45)",
+
+                // Destinos
+                "rgba(192, 57, 43, 0.65)", "rgba(192, 57, 43, 0.35)",
+                "rgba(212, 113, 26, 0.65)", "rgba(212, 113, 26, 0.35)",
+                "rgba(90, 106, 133, 0.65)", "rgba(90, 106, 133, 0.35)",
+                "rgba(27, 54, 93, 0.70)", "rgba(27, 54, 93, 0.35)"
+            ];
+
+            // ---- 3. CONFIGURACIÓN DEL DIAGRAMA PLOTLY ----
+            const data = [{
+                type: "sankey",
+                arrangement: "snap", // Activa el empaquetado armónico sin colisiones
+                orientation: "h",
+                node: {
+                    pad: 32,          // Separación vertical amplia que garantiza no solapamiento
+                    thickness: 24,    // Anchura sólida de los bloques
+                    line: { color: "#FFFFFF", width: 2 },
+                    label: nodeLabels,
+                    color: nodeColors,
+                    x: nodeX,
+                    y: nodeY,
+                    hovertemplate: '%{label}<extra></extra>'
+                },
+                link: {
+                    source: sources,
+                    target: targets,
+                    value: values,
+                    color: linkColors,
+                    hovertemplate: 'Flujo de Almacenamiento:<br><b>%{value:,.0f} palets</b><extra></extra>'
+                }
+            }];
+
+            const layout = {
+                // Tipografía ejecutiva ampliada en slate oscuro
+                font: {
+                    family: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                    size: 20,
+                    color: "#0F172A"
+                },
+                margin: { l: 10, r: 10, t: 15, b: 15 },
+                paper_bgcolor: "rgba(0,0,0,0)",
+                plot_bgcolor: "rgba(0,0,0,0)"
+            };
+
+            const config = {
+                responsive: true,
+                displayModeBar: false
+            };
+
+            Plotly.newPlot('sankey-container', data, layout, config);
+        }
+
+        // Exportación directa a imagen PNG en alta definición (1080p)
+        function exportSankey() {
+            Plotly.downloadImage('sankey-container', {
+                format: 'png',
+                width: 1920,
+                height: 1080,
+                filename: 'KERN_Estrategia_Almacenamiento_Sankey_HD'
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', drawCleanSankey);
+        window.addEventListener('resize', () => Plotly.Plots.resize('sankey-container'));
+    </script>
+</body>
+</html>

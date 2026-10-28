@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evolución Longitudinal TO-BE (Año 0 - Año 20) - Kern Pharma</title>
+    <!-- Carga de Plotly.js desde CDN oficial -->
+    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+    
+    <style>
+        /* ==========================================================================
+           1. VARIABLES DE DISEÑO Y PALETA CORPORATIVA
+           ========================================================================== */
+        :root {
+            --bg-color: #ffffff;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+
+            /* Paleta cromática redefinida */
+            --color-pt: #104862;          /* PT: Azul original de silo */
+            --color-acond: #CC6600;       /* Material Acond.: Naranja original */
+            --color-mmpp: #C0392B;        /* MMPP / API: Rojizo */
+            --color-mezcla: #E67E22;      /* Mezcla / Silo Insumos: Naranja intermedio */
+            --color-otros: #64748b;       /* Otros / Auxiliares: Gris */
+        }
+
+        /* ==========================================================================
+           2. ESTILOS GENERALES Y CONTENEDOR TIPO DASHBOARD
+           ========================================================================== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f8fafc;
+            color: var(--text-main);
+            padding: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .dashboard-container {
+            width: 100%;
+            max-width: 1600px;
+            background: var(--card-bg);
+            border-radius: 14px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+            border: 1px solid var(--border-color);
+            padding: 32px 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* ==========================================================================
+           3. CABECERA EJECUTIVA
+           ========================================================================== */
+        .header {
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .title-block h1 {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--color-pt);
+            margin-bottom: 6px;
+            letter-spacing: -0.5px;
+        }
+
+        .title-block p {
+            font-size: 14px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .brand-logo {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--color-pt);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: 1.5px;
+        }
+
+        /* ==========================================================================
+           4. ÁREA DEL DIAGRAMA
+           ========================================================================== */
+        #sankey-chart {
+            width: 100%;
+            height: 720px;
+        }
+
+        @media (max-width: 1024px) {
+            #sankey-chart {
+                height: 520px;
+            }
+            .dashboard-container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <!-- Cabecera -->
+        <div class="header">
+            <div class="title-block">
+                <h1>Evolución Longitudinal de Inventario TO-BE (Capacidad vs. Demanda)</h1>
+                <p>Análisis de flujos desde origen y ocupación proyectada de los silos principales (Año 0 a Año 20)</p>
+            </div>
+            <div class="brand-logo">
+                KERN PHARMA
+            </div>
+        </div>
+
+        <!-- Contenedor del gráfico Sankey -->
+        <div id="sankey-chart"></div>
+    </div>
+
+    <script>
+        // ==========================================================================
+        // 5. PARÁMETROS CROMÁTICOS (CENTRALIZADOS)
+        // ==========================================================================
+        // PT: Azul actual del Silo de Terrassa
+        const COLOR_PT          = "#104862";
+        // Material Acondicionamiento: Naranja original
+        const COLOR_ACOND       = "#CC6600";
+        // MMPP y API: Tono rojizo diferenciado
+        const COLOR_MMPP        = "#C0392B";
+        // La Mezcla: Naranja intermedio (fusión de insumos en Silo Terrassa)
+        const COLOR_MEZCLA      = "#E67E22";
+        // Otros insumos y ubicaciones técnicas de soporte: Gris neutro original
+        const COLOR_OTROS       = "#64748b";
+
+        // Versiones translúcidas para los enlaces (links)
+        const LINK_PT           = "rgba(16, 72, 98, 0.40)";
+        const LINK_PT_SEC       = "rgba(16, 72, 98, 0.20)";
+        const LINK_ACOND        = "rgba(204, 102, 0, 0.40)";
+        const LINK_ACOND_SEC    = "rgba(204, 102, 0, 0.20)";
+        const LINK_MMPP         = "rgba(192, 57, 43, 0.45)";
+        const LINK_MMPP_SEC     = "rgba(192, 57, 43, 0.20)";
+        const LINK_MEZCLA       = "rgba(230, 126, 34, 0.40)";
+        const LINK_OTROS        = "rgba(100, 116, 139, 0.35)";
+        const LINK_OTROS_SEC    = "rgba(100, 116, 139, 0.20)";
+
+        // ==========================================================================
+        // 6. DEFINICIÓN DE ETIQUETAS DE NODOS
+        // ==========================================================================
+        // Capacidades nominales: Silo Terrassa = 18.000 huecos | Silo PT = 24.000 huecos
+        const nodeLabels = [
+            // Orígenes (Índices 0 - 3)
+            "<b>Producto Terminado</b><br>15.870 pal",             // 0
+            "<b>Material Acond.</b><br>7.428 pal",                 // 1
+            "<b>MMPP y API</b><br>4.773 pal",                      // 2
+            "<b>Otros</b><br>333 pal",                             // 3
+            
+            // Destinos Año 0 (Índices 4 - 6)
+            "Silo Terrassa (Año 0)<br>11.564 pal <b>(64%)</b>",    // 4  (Insumos / Mezcla)
+            "Nuevo Silo PT (Año 0)<br>15.599 pal <b>(65%)</b>",    // 5  (PT Comercial)
+            "Otras Ubic. (Año 0)<br>1.239 pal",                    // 6  (Zonas Técnicas)
+            
+            // Destinos Año 5 (Índices 7 - 9)
+            "Silo Terrassa (Año 5)<br>13.698 pal <b>(76%)</b>",    // 7
+            "Nuevo Silo PT (Año 5)<br>18.301 pal <b>(76%)</b>",    // 8
+            "Otras Ubic. (Año 5)<br>1.239 pal",                    // 9
+            
+            // Destinos Año 10 (Índices 10 - 12)
+            "Silo Terrassa (Año 10)<br>14.447 pal <b>(80%)</b>",   // 10
+            "Nuevo Silo PT (Año 10)<br>19.249 pal <b>(80%)</b>",   // 11
+            "Otras Ubic. (Año 10)<br>1.239 pal",                   // 12
+            
+            // Destinos Año 20 (Índices 13 - 15)
+            "Silo Terrassa (Año 20)<br>15.235 pal <b>(85%)</b>",   // 13
+            "Nuevo Silo PT (Año 20)<br>20.247 pal <b>(84%)</b>",   // 14
+            "Otras Ubic. (Año 20)<br>1.239 pal"                    // 15
+        ];
+
+        // ==========================================================================
+        // 7. ASIGNACIÓN CROMÁTICA DE NODOS
+        // ==========================================================================
+        const nodeColors = [
+            // Orígenes
+            COLOR_PT,        // 0: Producto Terminado (Azul)
+            COLOR_ACOND,     // 1: Material Acondicionamiento (Naranja)
+            COLOR_MMPP,      // 2: MMPP y API (Rojizo)
+            COLOR_OTROS,     // 3: Otros insumos (Gris)
+            
+            // Horizonte Año 0
+            COLOR_MEZCLA,    // 4: Silo Terrassa (Mezcla de insumos)
+            COLOR_PT,        // 5: Nuevo Silo PT (Azul)
+            COLOR_OTROS,     // 6: Otras Ubicaciones (Gris)
+            
+            // Horizonte Año 5
+            COLOR_MEZCLA,    // 7: Silo Terrassa (Mezcla)
+            COLOR_PT,        // 8: Nuevo Silo PT (Azul)
+            COLOR_OTROS,     // 9: Otras Ubicaciones (Gris)
+            
+            // Horizonte Año 10
+            COLOR_MEZCLA,    // 10: Silo Terrassa (Mezcla)
+            COLOR_PT,        // 11: Nuevo Silo PT (Azul)
+            COLOR_OTROS,     // 12: Otras Ubicaciones (Gris)
+            
+            // Horizonte Año 20
+            COLOR_MEZCLA,    // 13: Silo Terrassa (Mezcla)
+            COLOR_PT,        // 14: Nuevo Silo PT (Azul)
+            COLOR_OTROS      // 15: Otras Ubicaciones (Gris)
+        ];
+
+        // ==========================================================================
+        // 8. MATRIZ DE CONECTIVIDAD Y VOLÚMENES (ENLACES)
+        // ==========================================================================
+        // Orígenes hacia Año 0, y transiciones interanuales consecutivas
+        const sourceNodes = [
+            0, 0, 1, 1, 2, 2, 3, 3,    // De Orígenes hacia Año 0
+            4, 5, 6,                   // De Año 0 hacia Año 5
+            7, 8, 9,                   // De Año 5 hacia Año 10
+            10, 11, 12                 // De Año 10 hacia Año 20
+        ];
+
+        const targetNodes = [
+            5, 6, 4, 6, 4, 6, 4, 6,    // Destinos dentro de Año 0
+            7, 8, 9,                   // Destinos dentro de Año 5
+            10, 11, 12,                // Destinos dentro de Año 10
+            13, 14, 15                 // Destinos dentro de Año 20
+        ];
+
+        const linkValues = [
+            // Distribución inicial (Año 0)
+            15599, 271,    // PT -> Nuevo Silo PT, Otras Ubic.
+            7125, 303,     // Acond -> Silo Terrassa, Otras Ubic.
+            4226, 547,     // MMPP -> Silo Terrassa, Otras Ubic.
+            215, 118,      // Otros -> Silo Terrassa, Otras Ubic.
+            
+            // Evolución de inventario Año 0 -> Año 5
+            13698, 18301, 1239,
+            
+            // Evolución de inventario Año 5 -> Año 10
+            14447, 19249, 1239,
+            
+            // Evolución de inventario Año 10 -> Año 20
+            15235, 20247, 1239
+        ];
+
+        // Colores asignados a cada link de flujo individual
+        const linkColors = [
+            // Flujos iniciales hacia Año 0
+            LINK_PT, LINK_PT_SEC,
+            LINK_ACOND, LINK_ACOND_SEC,
+            LINK_MMPP, LINK_MMPP_SEC,
+            LINK_OTROS, LINK_OTROS_SEC,
+            
+            // Flujos multianuales Año 0 -> Año 5
+            LINK_MEZCLA, LINK_PT, LINK_OTROS,
+            
+            // Flujos multianuales Año 5 -> Año 10
+            LINK_MEZCLA, LINK_PT, LINK_OTROS,
+            
+            // Flujos multianuales Año 10 -> Año 20
+            LINK_MEZCLA, LINK_PT, LINK_OTROS
+        ];
+
+        // ==========================================================================
+        // 9. CONFIGURACIÓN DEL OBJETO SANKEY Y LAYOUT EN PLOTLY
+        // ==========================================================================
+        const sankeyData = [{
+            type: "sankey",
+            orientation: "h",
+            arrangement: "snap",
+            node: {
+                pad: 25,
+                thickness: 32,
+                line: {
+                    color: "#ffffff",
+                    width: 1.5
+                },
+                label: nodeLabels,
+                color: nodeColors,
+                hovertemplate: "<b>%{label}</b><extra></extra>"
+            },
+            link: {
+                source: sourceNodes,
+                target: targetNodes,
+                value: linkValues,
+                color: linkColors,
+                hovertemplate: "Flujo: %{source.label} ➔ %{target.label}<br><b>Caudal: %{value:,.0f} palets</b><extra></extra>"
+            }
+        }];
+
+        const sankeyLayout = {
+            font: {
+                size: 11.5,
+                family: "-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
+                color: "#1e293b"
+            },
+            margin: { l: 20, r: 20, t: 50, b: 20 },
+            paper_bgcolor: "transparent",
+            plot_bgcolor: "transparent",
+            // Rótulos de columnas temporales
+            annotations: [
+                { x: 0.0, y: 1.05, text: "<b>ORIGEN INSUMOS</b>", showarrow: false, xref: "paper", yref: "paper", xanchor: "left", font: {size: 13, color: COLOR_PT} },
+                { x: 0.25, y: 1.05, text: "<b>AÑO 0</b>", showarrow: false, xref: "paper", yref: "paper", xanchor: "center", font: {size: 13, color: COLOR_PT} },
+                { x: 0.50, y: 1.05, text: "<b>AÑO 5</b>", showarrow: false, xref: "paper", yref: "paper", xanchor: "center", font: {size: 13, color: COLOR_PT} },
+                { x: 0.75, y: 1.05, text: "<b>AÑO 10</b>", showarrow: false, xref: "paper", yref: "paper", xanchor: "center", font: {size: 13, color: COLOR_PT} },
+                { x: 1.0, y: 1.05, text: "<b>AÑO 20</b>", showarrow: false, xref: "paper", yref: "paper", xanchor: "right", font: {size: 13, color: COLOR_PT} }
+            ]
+        };
+
+        const chartConfig = { 
+            responsive: true,
+            displayModeBar: false
+        };
+
+        // Renderizado del gráfico interactivo
+        Plotly.newPlot("sankey-chart", sankeyData, sankeyLayout, chartConfig);
+    </script>
+</body>
+</html>
