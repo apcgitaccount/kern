@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contenedor Universal de Visualizaciones</title>
+    <style>
+        /* ---- CONFIGURACIÓN ESTRUCTURAL ---- */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #07111b;
+        }
+
+        /* ---- BARRA DE CONTROL SUPERIOR (RETRACTIL) ---- */
+        #toolbar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 44px;
+            background: rgba(13, 24, 34, 0.95);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            gap: 8px;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+
+        #toolbar.hidden {
+            transform: translateY(-100%);
+        }
+
+        /* Botón pestaña para mostrar/ocultar barra */
+        #toggle-toolbar {
+            position: absolute;
+            top: 44px;
+            right: 14px;
+            background: rgba(13, 24, 34, 0.85);
+            color: #9eb1c2;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            padding: 3px 10px;
+            font-size: 11px;
+            cursor: pointer;
+            z-index: 1001;
+            transition: top 0.3s ease;
+        }
+
+        #toolbar.hidden + #toggle-toolbar {
+            top: 0;
+        }
+
+        /* Entradas y controles interactivos */
+        .url-input {
+            flex: 1;
+            background: #162432;
+            border: 1px solid #294255;
+            color: #eaf2f8;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .url-input:focus {
+            outline: none;
+            border-color: #38bdf8;
+        }
+
+        .btn {
+            background: #104862;
+            color: #ffffff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            background: #1a5c7d;
+        }
+
+        .btn-preset {
+            background: #1e293b;
+            border: 1px solid #334155;
+        }
+
+        .btn-preset:hover {
+            background: #334155;
+        }
+
+        /* ---- MARCO DE RENDERIZADO WEBGL/HTML ---- */
+        #render-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background-color: transparent;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Barra de control superior -->
+    <div id="toolbar">
+        <input type="text" id="target-url" class="url-input" placeholder="Introduce URL (https://... o http://localhost:8000/...)" />
+        <button class="btn" onclick="cargarURL()">Cargar</button>
+        <button class="btn btn-preset" onclick="cargarPreset('3D')">Silo 3D</button>
+        <button class="btn btn-preset" onclick="cargarPreset('Sankey')">Sankey</button>
+        <button class="btn btn-preset" onclick="cargarPreset('Flujo')">Red Flujos</button>
+    </div>
+
+    <!-- Pestaña para ocultar la barra durante la presentación ejecutiva -->
+    <button id="toggle-toolbar" onclick="alternarBarra()">Ocultar Barra</button>
+
+    <!-- Contenedor del documento HTML cargado -->
+    <iframe id="render-frame" allow="accelerometer; autoplay; camera; encrypted-media; gyroscope; picture-in-picture; xr-spatial-tracking" allowfullscreen></iframe>
+
+    <script>
+        // ---- GESTIÓN DE ESTADO Y PRESETS ----
+        const iframe = document.getElementById('render-frame');
+        const inputURL = document.getElementById('target-url');
+        const toolbar = document.getElementById('toolbar');
+        const toggleBtn = document.getElementById('toggle-toolbar');
+
+        // Configura aquí tus enlaces predeterminados (locales o GitHub Pages)
+        const PRESETS = {
+            '3D': 'v0.1.1.5 FlujoL.html',
+            'Sankey': '20261027 flujos tobe año 0 a 20_vdef.html',
+            'Flujo': 'flujo_tobe_v3.html'
+        };
+
+        // Carga inicial: Recupera la última URL usada o asigna una por defecto
+        window.addEventListener('DOMContentLoaded', () => {
+            const ultimaURL = localStorage.getItem('ultima_url_powerpoint') || PRESETS['3D'];
+            inputURL.value = ultimaURL;
+            cargarURL();
+        });
+
+        function cargarURL() {
+            let url = inputURL.value.trim();
+            if (!url) return;
+
+            // Si se pasa una ruta relativa y estamos en localhost, se auto-completa
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                url = window.location.origin + '/' + encodeURI(url);
+            }
+
+            iframe.src = url;
+            localStorage.setItem('ultima_url_powerpoint', inputURL.value.trim());
+        }
+
+        function cargarPreset(tipo) {
+            if (PRESETS[tipo]) {
+                inputURL.value = PRESETS[tipo];
+                cargarURL();
+            }
+        }
+
+        function alternarBarra() {
+            toolbar.classList.toggle('hidden');
+            if (toolbar.classList.contains('hidden')) {
+                toggleBtn.innerText = 'Mostrar Controles';
+            } else {
+                toggleBtn.innerText = 'Ocultar Barra';
+            }
+        }
+    </script>
+</body>
+</html>
